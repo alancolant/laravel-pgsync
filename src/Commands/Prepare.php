@@ -26,17 +26,17 @@ class Prepare extends Command
 
     protected function _getTables(): array|Collection
     {
-        return array_unique(data_get(config('laravel-pgsync.indices'), '*.table'));
+        return array_unique(data_get(config('pgsync.indices'), '*.table'));
 
         return collect(Schema::getAllTables())
             ->map(fn($i) => $i->tablename)
             ->filter(function ($table) {
-                foreach (config('laravel-pgsync.tables.includes', []) as $include) {
+                foreach (config('pgsync.tables.includes', []) as $include) {
                     if (!fnmatch($include, $table)) {
                         return false;
                     }
                 }
-                foreach (config('laravel-pgsync.tables.excludes', []) as $exclude) {
+                foreach (config('pgsync.tables.excludes', []) as $exclude) {
                     if (fnmatch($exclude, $table)) {
                         return false;
                     }

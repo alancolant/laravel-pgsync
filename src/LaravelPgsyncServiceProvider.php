@@ -4,27 +4,22 @@ namespace Alancolant\LaravelPgsync;
 
 use Alancolant\LaravelPgsync\Commands\Listen;
 use Alancolant\LaravelPgsync\Commands\Prepare;
-use Illuminate\Support\ServiceProvider;
+use Spatie\LaravelPackageTools\Package;
+use Spatie\LaravelPackageTools\PackageServiceProvider;
 
-class LaravelPgsyncServiceProvider extends ServiceProvider
+class LaravelPgsyncServiceProvider extends PackageServiceProvider
 {
-    public function boot(): void
+    public function configurePackage(Package $package): void
     {
-        if ($this->app->runningInConsole()) {
-            $this->publishes([
-                __DIR__ . '/../config/config.php' => config_path('laravel-pgsync.php'),
-            ], 'config');
-
-            // Registering package commands.
-            $this->commands([
-                Listen::class,
-                Prepare::class
-            ]);
-        }
-    }
-
-    public function register(): void
-    {
-        $this->mergeConfigFrom(__DIR__ . '/../config/config.php', 'laravel-pgsync');
+        /*
+         * This class is a Package Service Provider
+         *
+         * More info: https://github.com/spatie/laravel-package-tools
+         */
+        $package
+            ->name('laravel-pgsync')
+            ->hasConfigFile()
+            ->hasMigration('create_laravel-pgsync_table')
+            ->hasCommands([Prepare::class, Listen::class]);
     }
 }

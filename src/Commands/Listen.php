@@ -23,7 +23,7 @@ class Listen extends Command
         });
 
 
-        $conn = DB::connection(config('laravel-pgsync.connection', config('database.default')));
+        $conn = DB::connection(config('pgsync.connection', config('database.default')));
         if ($conn->getDriverName() !== "pgsql") {
             throw new \Error("Driver {$conn->getDriverName()} not supported!");
         }
@@ -70,7 +70,7 @@ class Listen extends Command
         foreach ($this->_getIndicesForTable($table) as $indiceName => $indice) {
             //Custom action if soft delete enabled
             if (
-                config('laravel-pgsync.action_on_soft_delete') === "delete"
+                config('pgsync.action_on_soft_delete') === "delete"
                 && array_key_exists('deleted_at', $record)
             ) {
                 if ($record['deleted_at'] !== null && $old['deleted_at'] === null) {
@@ -117,13 +117,13 @@ class Listen extends Command
     private function _getElasticClient(): Client
     {
         return ClientBuilder::create()
-            ->setHosts(config('laravel-pgsync.output.elasticsearch.hosts'))
+            ->setHosts(config('pgsync.output.elasticsearch.hosts'))
             ->build();
     }
 
     private function _getIndicesForTable(string &$table): array
     {
-        return collect(config('laravel-pgsync.indices'))->where('table', $table)->toArray();
+        return collect(config('pgsync.indices'))->where('table', $table)->toArray();
     }
 
     private function _getRecordFieldsForIndex(array $record, array $indice): array
