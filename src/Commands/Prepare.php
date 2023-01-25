@@ -5,7 +5,6 @@ namespace Alancolant\LaravelPgsync\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class Prepare extends Command
 {
@@ -28,22 +27,22 @@ class Prepare extends Command
     {
         return array_unique(data_get(config('pgsync.indices'), '*.table'));
 
-        return collect(Schema::getAllTables())
-            ->map(fn ($i) => $i->tablename)
-            ->filter(function ($table) {
-                foreach (config('pgsync.tables.includes', []) as $include) {
-                    if (! fnmatch($include, $table)) {
-                        return false;
-                    }
-                }
-                foreach (config('pgsync.tables.excludes', []) as $exclude) {
-                    if (fnmatch($exclude, $table)) {
-                        return false;
-                    }
-                }
-
-                return true;
-            })->values();
+//        return collect(Schema::getAllTables())
+//            ->map(fn($i) => $i->tablename)
+//            ->filter(function ($table) {
+//                foreach (config('pgsync.tables.includes', []) as $include) {
+//                    if (!fnmatch($include, $table)) {
+//                        return false;
+//                    }
+//                }
+//                foreach (config('pgsync.tables.excludes', []) as $exclude) {
+//                    if (fnmatch($exclude, $table)) {
+//                        return false;
+//                    }
+//                }
+//
+//                return true;
+//            })->values();
     }
 
     private function _createTriggerForTable(string $table): void
@@ -84,25 +83,27 @@ SQL
 
     private function test()
     {
-        $res = DB::table('posts')
-            ->leftJoinSub(
-                DB::table('users')
-                    ->leftJoinSub(
-                        DB::table('posts')
-                            ->leftJoinSub(
-                                DB::table('users')->select([DB::raw('"users".*')]), 'user2', 'user2.id', 'posts.user_id'
-                            )->select([DB::raw('"posts".*'), DB::raw('to_json("user2") AS "user2"')]), 'posts', 'users.id', 'posts.user_id')
-                    ->groupBy(DB::raw('"users"."id"'))
-                    ->select([DB::raw('"users".*'), DB::raw('jsonb_agg("posts") as "posts"')]), 'pgsync_user', 'posts.user_id', 'pgsync_user.id')
-            ->select([DB::raw('posts.*'), DB::raw('to_json("pgsync_user") as "user"')]);
-
-        $res = DB::query()
-            ->fromSub($res, 'pgsync_final_res')
-            ->select([DB::raw('to_json("pgsync_final_res") as "pgsync_final_res"')]);
+//        $res = DB::table('posts')
+//            ->leftJoinSub(
+//                DB::table('users')
+//                    ->leftJoinSub(
+//                        DB::table('posts')
+//                            ->leftJoinSub(
+//                                DB::table('users')->select([DB::raw('"users".*')]), 'user2', 'user2.id', 'posts.user_id'
+//                            )->select([DB::raw('"posts".*'), DB::raw('to_json("user2") AS "user2"')]), 'posts',
+//                        'users.id', 'posts.user_id')
+//                    ->groupBy(DB::raw('"users"."id"'))
+//                    ->select([DB::raw('"users".*'), DB::raw('jsonb_agg("posts") as "posts"')]), 'pgsync_user',
+//                'posts.user_id', 'pgsync_user.id')
+//            ->select([DB::raw('posts.*'), DB::raw('to_json("pgsync_user") as "user"')]);
+//
+//        $res = DB::query()
+//            ->fromSub($res, 'pgsync_final_res')
+//            ->select([DB::raw('to_json("pgsync_final_res") as "pgsync_final_res"')]);
 //            ->select([DB::raw('to_json(res) as res')]);
 //        dd($res->where(DB::raw("\"user\"::jsonb->>'id'"), 8)->count());
-        dd(json_decode($res->where(DB::raw("\"user\"::jsonb->>'id'"), 8)->dd()));
-        dd(json_decode($res->where(DB::raw("\"user\"::jsonb->>'id'"), 8)->first()->pgsync_final_res));
-        dd(json_decode($res->get()->toArray()[0]->res), $res->get()->toArray()[0]->user);
+//        dd(json_decode($res->where(DB::raw("\"user\"::jsonb->>'id'"), 8)->dd()));
+//        dd(json_decode($res->where(DB::raw("\"user\"::jsonb->>'id'"), 8)->first()->pgsync_final_res));
+//        dd(json_decode($res->get()->toArray()[0]->res), $res->get()->toArray()[0]->user);
     }
 }
