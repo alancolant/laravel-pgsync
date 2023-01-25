@@ -81,8 +81,8 @@ SQL
         );
     }
 
-    private function test()
-    {
+//    private function test()
+//    {
 //        $res = DB::table('posts')
 //            ->leftJoinSub(
 //                DB::table('users')
@@ -105,5 +105,5 @@ SQL
 //        dd(json_decode($res->where(DB::raw("\"user\"::jsonb->>'id'"), 8)->dd()));
 //        dd(json_decode($res->where(DB::raw("\"user\"::jsonb->>'id'"), 8)->first()->pgsync_final_res));
 //        dd(json_decode($res->get()->toArray()[0]->res), $res->get()->toArray()[0]->user);
-    }
+//    }
 }
