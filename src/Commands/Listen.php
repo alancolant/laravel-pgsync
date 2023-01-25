@@ -26,12 +26,13 @@ class Listen extends Command
     public function __construct()
     {
         parent::__construct();
-        $this->publisher = new ElasticsearchPublisher();
-        $this->subscriber = new PostgresqlSubscriber();
     }
 
     public function handle(): int
     {
+        $this->publisher = new ElasticsearchPublisher();
+        $this->subscriber = new PostgresqlSubscriber();
+
         $this->trap([SIGTERM, SIGQUIT, SIGINT], function () {
             //@TODO Graceful shutdown
             $this->running = false;
