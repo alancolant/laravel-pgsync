@@ -13,7 +13,6 @@ class Prepare extends Command
 
     protected $description = 'Prepare Postgresql database to trigger change';
 
-
     public function handle(): int
     {
 //        $this->test();
@@ -21,6 +20,7 @@ class Prepare extends Command
         foreach ($this->_getTables() as $table) {
             $this->_createTriggerForTable($table);
         }
+
         return Command::SUCCESS;
     }
 
@@ -29,10 +29,10 @@ class Prepare extends Command
         return array_unique(data_get(config('pgsync.indices'), '*.table'));
 
         return collect(Schema::getAllTables())
-            ->map(fn($i) => $i->tablename)
+            ->map(fn ($i) => $i->tablename)
             ->filter(function ($table) {
                 foreach (config('pgsync.tables.includes', []) as $include) {
-                    if (!fnmatch($include, $table)) {
+                    if (! fnmatch($include, $table)) {
                         return false;
                     }
                 }
@@ -41,10 +41,10 @@ class Prepare extends Command
                         return false;
                     }
                 }
+
                 return true;
             })->values();
     }
-
 
     private function _createTriggerForTable(string $table): void
     {
@@ -58,8 +58,8 @@ SQL
 
     private function _createTriggerFunction(): void
     {
-        DB::unprepared(<<<SQL
-CREATE OR REPLACE FUNCTION pgsync_notify_trigger() RETURNS trigger AS \$trigger\$
+        DB::unprepared(<<<'SQL'
+CREATE OR REPLACE FUNCTION pgsync_notify_trigger() RETURNS trigger AS $trigger$
 DECLARE
   payload TEXT;
 BEGIN
@@ -77,7 +77,7 @@ BEGIN
   END IF;
   RETURN COALESCE(NEW, OLD);
 END;
-\$trigger\$ LANGUAGE plpgsql VOLATILE;
+$trigger$ LANGUAGE plpgsql VOLATILE;
 SQL
         );
     }
@@ -90,15 +90,11 @@ SQL
                     ->leftJoinSub(
                         DB::table('posts')
                             ->leftJoinSub(
-                                DB::table('users')->select([DB::raw('"users".*')])
-                                , 'user2', 'user2.id', 'posts.user_id'
-                            )->select([DB::raw('"posts".*'), DB::raw('to_json("user2") AS "user2"')])
-                        , 'posts', 'users.id', 'posts.user_id')
+                                DB::table('users')->select([DB::raw('"users".*')]), 'user2', 'user2.id', 'posts.user_id'
+                            )->select([DB::raw('"posts".*'), DB::raw('to_json("user2") AS "user2"')]), 'posts', 'users.id', 'posts.user_id')
                     ->groupBy(DB::raw('"users"."id"'))
-                    ->select([DB::raw('"users".*'), DB::raw('jsonb_agg("posts") as "posts"')])
-                , 'pgsync_user', 'posts.user_id', 'pgsync_user.id')
+                    ->select([DB::raw('"users".*'), DB::raw('jsonb_agg("posts") as "posts"')]), 'pgsync_user', 'posts.user_id', 'pgsync_user.id')
             ->select([DB::raw('posts.*'), DB::raw('to_json("pgsync_user") as "user"')]);
-
 
         $res = DB::query()
             ->fromSub($res, 'pgsync_final_res')
