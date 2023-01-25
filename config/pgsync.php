@@ -4,7 +4,7 @@ return [
     /**
      * You can specify custom connection, by default it use config/database.php default
      */
-    'connection' => null,
+    'connection'            => null,
 
     //    /**
     //     * You can specify which table you want to index, by default all tables except laravel internals
@@ -26,9 +26,9 @@ return [
     /**
      * @suggestion Possibility to define multiple output and choose elasticsearch by default
      */
-    'output' => [
+    'output'                => [
         'elasticsearch' => [
-            'hosts' => ['http://elasticsearch:9200'],
+            'hosts'    => ['http://elasticsearch:9200'],
             'username' => null,
             'password' => null,
         ],
@@ -47,17 +47,17 @@ return [
      * @suggestion Implement via model instead of table with a trait??
      * @suggestion Plugin system to use custom PHP methods to reformat document before indexing??
      */
-    'indices' => [
-        'users' => [
-            'table' => 'users',
+    'indices'               => [
+        'users'   => [
+            'table'  => 'users',
             'fields' => ['name'],
         ],
         'clients' => [
-            'table' => 'users',
+            'table'  => 'users',
             'fields' => ['email', 'password'],
         ],
-        'posts' => [
-            'table' => 'posts',
+        'posts'   => [
+            'table'  => 'posts',
             'fields' => ['*'],
         ],
         /**Relative to suggestions*/
