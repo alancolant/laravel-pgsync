@@ -1,10 +1,13 @@
 # Very short description of the package
 
+<!--
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/alancolant/laravel-pgsync.svg?style=flat-square)](https://packagist.org/packages/alancolant/laravel-pgsync)
 [![Total Downloads](https://img.shields.io/packagist/dt/alancolant/laravel-pgsync.svg?style=flat-square)](https://packagist.org/packages/alancolant/laravel-pgsync)
-![GitHub Actions](https://github.com/alancolant/laravel-pgsync/actions/workflows/main.yml/badge.svg)
+-->
+![GitHub Actions](https://github.com/alancolant/laravel-pgsync/actions/workflows/run-tests.yml/badge.svg)
 
-This is where your description should go. Try and limit it to a paragraph or two, and maybe throw in a mention of what PSRs you support to avoid any confusion with users and contributors.
+This is where your description should go. Try and limit it to a paragraph or two, and maybe throw in a mention of what
+PSRs you support to avoid any confusion with users and contributors.
 
 ## Installation
 
@@ -40,8 +43,8 @@ If you discover any security related issues, please email contact@alancolant.com
 
 ## Credits
 
--   [Alan COLANT](https://github.com/alancolant)
--   [All Contributors](../../contributors)
+- [Alan COLANT](https://github.com/alancolant)
+- [All Contributors](../../contributors)
 
 ## License
 
