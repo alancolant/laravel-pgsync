@@ -3,7 +3,6 @@
 namespace Alancolant\LaravelPgsync;
 
 use Alancolant\LaravelPgsync\Commands\Listen;
-use Alancolant\LaravelPgsync\Commands\Prepare;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 
@@ -19,7 +18,7 @@ class LaravelPgsyncServiceProvider extends PackageServiceProvider
         $package
             ->name('laravel-pgsync')
             ->hasConfigFile()
-            ->hasMigration('create_laravel-pgsync_table')
-            ->hasCommands([Prepare::class, Listen::class]);
+            ->hasMigration('create_pgsync_notify_trigger_function')
+            ->hasCommands([Listen::class]);
     }
 }

@@ -1,0 +1,37 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
+
+return new class extends Migration {
+    public function up()
+    {
+        DB::unprepared(<<<'SQL'
+CREATE OR REPLACE FUNCTION pgsync_notify_trigger() RETURNS trigger AS $trigger$
+DECLARE
+  payload TEXT;
+BEGIN
+  IF TG_OP <> 'UPDATE' OR NEW IS DISTINCT FROM OLD THEN
+    -- Build the payload
+    payload := json_build_object(
+        'timestamp',CURRENT_TIMESTAMP,
+        'action',LOWER(TG_OP),
+        'schema',TG_TABLE_SCHEMA,
+        'identity',TG_TABLE_NAME,
+        'record',row_to_json(COALESCE(NEW, OLD)),
+        'old',row_to_json(CASE TG_OP WHEN 'UPDATE' THEN OLD  END)
+    );
+    PERFORM pg_notify('pgsync_event',payload);
+  END IF;
+  RETURN COALESCE(NEW, OLD);
+END;
+$trigger$ LANGUAGE plpgsql VOLATILE;
+SQL
+        );
+    }
+
+    public function down()
+    {
+        DB::unprepared(/** @lang PostgreSQL */ "DROP FUNCTION IF EXISTS pgsync_notify_trigger() CASCADE");
+    }
+};

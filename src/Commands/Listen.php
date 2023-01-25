@@ -2,10 +2,14 @@
 
 namespace Alancolant\LaravelPgsync\Commands;
 
-use Elastic\Elasticsearch\Client;
-use Elastic\Elasticsearch\ClientBuilder;
+use Alancolant\LaravelPgsync\Publishers\AbstractPublisher;
+use Alancolant\LaravelPgsync\Publishers\ElasticsearchPublisher;
+use Alancolant\LaravelPgsync\Subscribers\AbstractSubscriber;
+use Alancolant\LaravelPgsync\Subscribers\PostgresqlSubscriber;
+use Alancolant\LaravelPgsync\Types\DeleteEvent;
+use Alancolant\LaravelPgsync\Types\InsertEvent;
+use Alancolant\LaravelPgsync\Types\UpdateEvent;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 
 class Listen extends Command
 {
@@ -13,133 +17,91 @@ class Listen extends Command
 
     protected $description = 'Listen Postgresql trigger to handle change';
 
+    private AbstractSubscriber $subscriber;
+
+    private AbstractPublisher $publisher;
+
     private bool $running = true;
+
+    public function __construct()
+    {
+        parent::__construct();
+        $this->publisher = new ElasticsearchPublisher();
+        $this->subscriber = new PostgresqlSubscriber();
+    }
 
     public function handle(): int
     {
-        set_time_limit(0);
         $this->trap([SIGTERM, SIGQUIT, SIGINT], function () {
+            //@TODO Graceful shutdown
             $this->running = false;
+            exit();
         });
 
-        $conn = DB::connection(config('pgsync.connection', config('database.default')));
-        if ($conn->getDriverName() !== 'pgsql') {
-            throw new \Error("Driver {$conn->getDriverName()} not supported!");
-        }
-        $pdo = $conn->getPdo();
-        $pdo->exec('LISTEN pgsync_event');
+        $this->subscriber->initialize();
+
+        set_time_limit(0);
+        $this->subscriber->startListening();
         while ($this->running) {
-            while ($result = $pdo->pgsqlGetNotify(\PDO::FETCH_ASSOC, 1000 * 10)) {
-                $payload = json_decode($result['payload'], true);
-                switch ($payload['action']) {
-                    case 'insert':
-                        $this->handleInsert($payload['identity'], $payload['record']);
-                        break;
-                    case 'update':
-                        $this->handleUpdate($payload['identity'], $payload['record'], $payload['old']);
-                        break;
-                    case 'delete':
-                        $this->handleDelete($payload['identity'], $payload['record']);
-                        break;
-                }
-            }
+            $this->_broadcast($this->subscriber->getNextEvent());
         }
+        $this->subscriber->stopListening();
 
         return Command::SUCCESS;
     }
 
-    protected function handleDelete(string $table, array $record)
+    /**
+     * @param  InsertEvent|UpdateEvent|DeleteEvent  $event
+     * @return void
+     *
+     * @suggestion Use Redis or other memory cache as intermediary
+     */
+    private function _broadcast(InsertEvent|UpdateEvent|DeleteEvent $event): void
     {
-        $params = ['body' => []];
+        if ($event instanceof InsertEvent) {
+            $this->publisher->handleInsert($event);
 
-        foreach ($this->_getIndicesForTable($table) as $indiceName => $indice) {
-            $data = $this->_getRecordFieldsForIndex($record, $indice);
-            $params['body'][] = ['delete' => ['_index' => $indiceName, '_id' => $data['id']]];
+            return;
         }
 
-        if (! empty($params['body'])) {
-            $this->_getElasticClient()->bulk($params);
-        }
-    }
-
-    protected function handleUpdate(string $table, array $record, array $old)
-    {
-        $params = ['body' => []];
-
-        foreach ($this->_getIndicesForTable($table) as $indiceName => $indice) {
-            //Custom action if soft delete enabled
-            if (
-                config('pgsync.action_on_soft_delete') === 'delete'
-                && array_key_exists('deleted_at', $record)
-            ) {
-                if ($record['deleted_at'] !== null && $old['deleted_at'] === null) {
-                    $this->handleDelete($table, $old);
-
-                    continue;
-                }
-                if ($record['deleted_at'] === null && $old['deleted_at'] !== null) {
-                    $this->handleInsert($table, $record);
-
-                    continue;
-                }
-                if ($record['deleted_at'] !== null && $old['deleted_at'] !== null) {
-                    continue;
-                }
+        if ($event instanceof UpdateEvent) {
+            if (config('pgsync.action_on_soft_delete') === 'delete') {
+                $this->publisher->handleUpdateWithSoftDelete($event);
+            } elseif (config('pgsync.action_on_soft_delete') === 'update') {
+                $this->publisher->handleUpdate($event);
             }
-            $oldData = $this->_getRecordFieldsForIndex($old, $indice);
-            $newData = $this->_getRecordFieldsForIndex($record, $indice);
-            $data = array_diff($newData, $oldData);
-            if (empty($data)) {
-                continue;
-            }
-            $params['body'][] = ['update' => ['_index' => $indiceName, '_id' => $record['id']]];
-            $params['body'][] = ['doc' => $newData];
+
+            return;
         }
-        if (! empty($params['body'])) {
-            $this->_getElasticClient()->bulk($params);
+
+        if ($event instanceof DeleteEvent) {
+            $this->publisher->handleDelete($event);
         }
     }
 
-    protected function handleInsert(string $table, array $record)
-    {
-        $params = ['body' => []];
-
-        foreach ($this->_getIndicesForTable($table) as $indiceName => $indice) {
-            $data = $this->_getRecordFieldsForIndex($record, $indice);
-            $params['body'][] = ['index' => ['_index' => $indiceName, '_id' => $data['id']]];
-            $params['body'][] = $data;
-        }
-
-        if (! empty($params['body'])) {
-            $this->_getElasticClient()->bulk($params);
-        }
-    }
-
-    private function _getElasticClient(): Client
-    {
-        return ClientBuilder::create()
-            ->setHosts(config('pgsync.output.elasticsearch.hosts'))
-            ->build();
-    }
-
-    private function _getIndicesForTable(string &$table): array
-    {
-        return collect(config('pgsync.indices'))->where('table', $table)->toArray();
-    }
-
-    private function _getRecordFieldsForIndex(array $record, array $indice): array
-    {
-        return array_filter($record,
-            function ($_, $field) use (&$indice) {
-                foreach ([...$indice['fields'], 'id', 'deleted_at'] as $expectedField) {
-                    if (fnmatch($expectedField, $field)) {
-                        return true;
-                    }
-                }
-
-                return false;
-            },
-            ARRAY_FILTER_USE_BOTH
-        );
-    }
+//    private function test()
+//    {
+//        $res = DB::table('posts')
+//            ->leftJoinSub(
+//                DB::table('users')
+//                    ->leftJoinSub(
+//                        DB::table('posts')
+//                            ->leftJoinSub(
+//                                DB::table('users')->select([DB::raw('"users".*')]), 'user2', 'user2.id', 'posts.user_id'
+//                            )->select([DB::raw('"posts".*'), DB::raw('to_json("user2") AS "user2"')]), 'posts',
+//                        'users.id', 'posts.user_id')
+//                    ->groupBy(DB::raw('"users"."id"'))
+//                    ->select([DB::raw('"users".*'), DB::raw('jsonb_agg("posts") as "posts"')]), 'pgsync_user',
+//                'posts.user_id', 'pgsync_user.id')
+//            ->select([DB::raw('posts.*'), DB::raw('to_json("pgsync_user") as "user"')]);
+//
+//        $res = DB::query()
+//            ->fromSub($res, 'pgsync_final_res')
+//            ->select([DB::raw('to_json("pgsync_final_res") as "pgsync_final_res"')]);
+//            ->select([DB::raw('to_json(res) as res')]);
+//        dd($res->where(DB::raw("\"user\"::jsonb->>'id'"), 8)->count());
+//        dd(json_decode($res->where(DB::raw("\"user\"::jsonb->>'id'"), 8)->dd()));
+//        dd(json_decode($res->where(DB::raw("\"user\"::jsonb->>'id'"), 8)->first()->pgsync_final_res));
+//        dd(json_decode($res->get()->toArray()[0]->res), $res->get()->toArray()[0]->user);
+//    }
 }
