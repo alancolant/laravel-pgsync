@@ -1,6 +1,5 @@
 <?php
 
-
 namespace Alancolant\LaravelPgsync\Commands;
 
 use Elastic\Elasticsearch\Client;
@@ -11,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 class Listen extends Command
 {
     protected $signature = 'pgsync:listen';
+
     protected $description = 'Listen Postgresql trigger to handle change';
 
     private bool $running = true;
@@ -22,13 +22,12 @@ class Listen extends Command
             $this->running = false;
         });
 
-
         $conn = DB::connection(config('pgsync.connection', config('database.default')));
-        if ($conn->getDriverName() !== "pgsql") {
+        if ($conn->getDriverName() !== 'pgsql') {
             throw new \Error("Driver {$conn->getDriverName()} not supported!");
         }
         $pdo = $conn->getPdo();
-        $pdo->exec("LISTEN pgsync_event");
+        $pdo->exec('LISTEN pgsync_event');
         while ($this->running) {
             while ($result = $pdo->pgsqlGetNotify(\PDO::FETCH_ASSOC, 1000 * 10)) {
                 $payload = json_decode($result['payload'], true);
@@ -58,7 +57,7 @@ class Listen extends Command
             $params['body'][] = ['delete' => ['_index' => $indiceName, '_id' => $data['id']]];
         }
 
-        if (!empty($params['body'])) {
+        if (! empty($params['body'])) {
             $this->_getElasticClient()->bulk($params);
         }
     }
@@ -70,15 +69,17 @@ class Listen extends Command
         foreach ($this->_getIndicesForTable($table) as $indiceName => $indice) {
             //Custom action if soft delete enabled
             if (
-                config('pgsync.action_on_soft_delete') === "delete"
+                config('pgsync.action_on_soft_delete') === 'delete'
                 && array_key_exists('deleted_at', $record)
             ) {
                 if ($record['deleted_at'] !== null && $old['deleted_at'] === null) {
                     $this->handleDelete($table, $old);
+
                     continue;
                 }
                 if ($record['deleted_at'] === null && $old['deleted_at'] !== null) {
                     $this->handleInsert($table, $record);
+
                     continue;
                 }
                 if ($record['deleted_at'] !== null && $old['deleted_at'] !== null) {
@@ -94,7 +95,7 @@ class Listen extends Command
             $params['body'][] = ['update' => ['_index' => $indiceName, '_id' => $record['id']]];
             $params['body'][] = ['doc' => $newData];
         }
-        if (!empty($params['body'])) {
+        if (! empty($params['body'])) {
             $this->_getElasticClient()->bulk($params);
         }
     }
@@ -109,7 +110,7 @@ class Listen extends Command
             $params['body'][] = $data;
         }
 
-        if (!empty($params['body'])) {
+        if (! empty($params['body'])) {
             $this->_getElasticClient()->bulk($params);
         }
     }
@@ -135,6 +136,7 @@ class Listen extends Command
                         return true;
                     }
                 }
+
                 return false;
             },
             ARRAY_FILTER_USE_BOTH
