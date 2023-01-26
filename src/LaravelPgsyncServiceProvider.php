@@ -3,6 +3,7 @@
 namespace Alancolant\LaravelPgsync;
 
 use Alancolant\LaravelPgsync\Commands\FakeData;
+use Alancolant\LaravelPgsync\Commands\Index;
 use Alancolant\LaravelPgsync\Commands\Listen;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
@@ -20,6 +21,6 @@ class LaravelPgsyncServiceProvider extends PackageServiceProvider
             ->name('laravel-pgsync')
             ->hasConfigFile()
             ->hasMigration('create_pgsync_notify_trigger_function')
-            ->hasCommands([Listen::class, FakeData::class]);
+            ->hasCommands([Listen::class, FakeData::class, Index::class]);
     }
 }

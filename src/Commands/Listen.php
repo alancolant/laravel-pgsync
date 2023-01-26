@@ -30,6 +30,7 @@ class Listen extends Command
 
     public function handle(): int
     {
+//        $this->test();
         $this->publisher = new ElasticsearchPublisher();
         $this->subscriber = new PostgresqlSubscriber();
 
@@ -84,6 +85,67 @@ class Listen extends Command
         }
     }
 
+    /**
+     * @return void
+     * BEST PERFORMANCES
+     */
+//    public function test1()
+//    {
+//        DB::raw(<<<SQL
+//
+//SELECT *,JSONB_BUILD_OBJECT('name', users.name,'posts', posts2.result)
+//FROM users AS users
+//LEFT OUTER JOIN(
+//   SELECT JSON_AGG(JSON_BUILD_OBJECT('name',posts.name,'user',users.result)) AS result, posts.user_id AS posts2_ref
+//   FROM posts
+//   LEFT OUTER JOIN(
+//       SELECT JSON_BUILD_OBJECT('id',users.id,'posts',posts.result) AS result, users.id AS users_ref FROM users
+//       LEFT OUTER JOIN(
+//           SELECT JSON_AGG(JSON_BUILD_OBJECT(id, posts.id)) AS result, posts.user_id AS posts_ref
+//           FROM posts
+//           GROUP BY posts.user_id
+//       ) AS posts ON users.id = posts.posts_ref
+//  ) AS users ON posts.user_id = users.users_ref
+//    GROUP BY posts.user_id
+//) AS posts2 ON users.id = posts2.posts2_ref
+//SQL
+//        );
+//    }
+
+    /**
+     * @return void
+     * MORE LISIBILITY BUT PERFORMANCE DOWN
+     */
+//    public function test2()
+//    {
+//        DB::raw(<<<SQL
+//SELECT
+//to_jsonb(
+//    JSONB_BUILD_OBJECT(
+//        'id',"users"."id",
+//        'name',"users"."name",
+//        'posts',jsonb_agg(
+//            JSONB_BUILD_OBJECT(
+//                'name',"posts__0"."name",
+//                'description',"posts__0"."description",
+//                'user',JSONB_BUILD_OBJECT(
+//                    'name',"posts__users_0"."name"
+//                )
+//            )
+//        )
+//    )
+//)
+//,users.id
+//AS "users__res" FROM users
+//LEFT JOIN posts AS "posts__0" ON "users"."id" = "posts__0"."user_id"
+//LEFT JOIN users AS "posts__users_0" ON "posts__0"."user_id" = "posts__users_0"."id"
+//LEFT JOIN posts AS "posts__users_0__posts" ON "posts__users_0"."id" = "posts__users_0__posts"."user_id"
+//WHERE "users"."id" = 1
+//GROUP BY users.id
+//SQL
+//        );
+//    }
+
 //    private function test()
 //    {
 //        $res = DB::table('posts')
@@ -103,7 +165,8 @@ class Listen extends Command
 //        $res = DB::query()
 //            ->fromSub($res, 'pgsync_final_res')
 //            ->select([DB::raw('to_json("pgsync_final_res") as "pgsync_final_res"')]);
-//            ->select([DB::raw('to_json(res) as res')]);
+////            ->select([DB::raw('to_json(res) as res')]);
+//        dd($res->toSql());
 //        dd($res->where(DB::raw("\"user\"::jsonb->>'id'"), 8)->count());
 //        dd(json_decode($res->where(DB::raw("\"user\"::jsonb->>'id'"), 8)->dd()));
 //        dd(json_decode($res->where(DB::raw("\"user\"::jsonb->>'id'"), 8)->first()->pgsync_final_res));

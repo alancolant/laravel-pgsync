@@ -12,8 +12,8 @@ class FakeData extends Command
 
     public function handle(): int
     {
-//        $u = User::factory()->create();
 //        while (true) {
+//            $u = User::factory()->create();
 //            Post::query()->insert(array_fill(0, 500, [
 //                'user_id'     => $u->id,
 //                'name'        => 'teste',

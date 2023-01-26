@@ -40,14 +40,13 @@ class ElasticsearchPublisher extends AbstractPublisher
         $params = [];
 
         foreach ($this->_getIndicesForTable($event->table) as $indice) {
-            $oldData = $this->_getRecordFieldsForIndex($event->old, $indice);
-            $newData = $this->_getRecordFieldsForIndex($event->record, $indice);
-            $data = array_diff($newData, $oldData);
+            $data = array_diff($event->record, $event->old);
             if (empty($data)) {
                 continue;
             }
-            $params[] = ['update' => ['_index' => $indice['index'], '_id' => $event->record['id']]];
-            $params[] = ['doc' => $newData];
+            $newData = $this->_getRecordFieldsForIndex($event->record, $indice);
+            $params[] = ['index' => ['_index' => $indice['index'], '_id' => $event->record['id']]];
+            $params[] = $newData;
         }
         if (! empty($params)) {
             $this->_addBulk($params);
@@ -78,18 +77,20 @@ class ElasticsearchPublisher extends AbstractPublisher
 
     private int $bulkBodyLength = 0;
 
-    private function _addBulk(array $body)
+    public function _addBulk(array $body): void
     {
-        $this->bulkBodyLength++;
-        echo $this->bulkBodyLength."\n";
         $this->bulkParams['body'] = array_merge($this->bulkParams['body'], $body);
-        if ($this->bulkBodyLength >= 1) {
+        $this->bulkBodyLength++;
+        if ($this->bulkBodyLength >= 500) {
             $this->_sendBulk();
         }
     }
 
-    private function _sendBulk()
+    public function _sendBulk(): void
     {
+        if (empty($this->bulkParams['body'])) {
+            return;
+        }
         $this->elasticClient->bulk($this->bulkParams);
         $this->bulkParams['body'] = [];
         $this->bulkBodyLength = 0;

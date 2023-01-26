@@ -36,12 +36,13 @@ return [
 
     /**
      * @TODO Doc
-     * @TODO Relation (O2O,M2M)
+     *
+     * @WIP Relation (O2O,M2M) - INSERT[OK] - UPDATE - DELETE
      *
      * @DONE rename field with alias
      *
      * @TODO Possibility to define elastic index settings
-     * @TODO Possibility to define index name using doc field (ex: "users_[role]")
+     * @TODO Possibility to define index name using doc field (ex: "users_{{role}}")
      *
      * @suggestion Computed or scripted field
      * @suggestion Allow to set other output than elasticsearch for each index
@@ -50,36 +51,62 @@ return [
      * @suggestion Plugin system to use custom PHP methods to reformat document before indexing??
      */
     'indices' => [
+        /* AUTHORS */
         [
             'table' => 'users',
-            'index' => 'users',
-            'fields' => [
-                'name',
+            'index' => 'authors',
+            'fields' => ['id', 'name'],
+            'relations' => [
+                [
+                    'table' => 'posts',
+                    'es_name' => 'posts',
+                    'type' => 'many_to_many',
+                    'foreign_key' => ['local' => 'user_id', 'parent' => 'id'],
+                    'fields' => ['id', 'name', 'description', 'created_at'],
+                ],
             ],
         ],
-        [
-            'table' => 'users',
-            'index' => 'clients',
-            'fields' => [
-                'email',
-                'password',
-            ],
-        ],
+        /* POSTS */
         [
             'table' => 'posts',
             'index' => 'posts',
-            'fields' => [
-                'id',
+            'fields' => ['id', 'name', 'description', 'created_at'],
+            'relations' => [
                 [
-                    'db_field' => 'name',
-                    'es_field' => 'nom',
+                    'table' => 'users',
+                    'es_name' => 'author',
+                    'type' => 'one_to_one',
+                    'foreign_key' => ['local' => 'id', 'parent' => 'user_id'],
+                    'fields' => ['id', 'name'],
                 ],
-                'description',
                 [
-                    'db_query' => "CONCAT({{prefix}}id,' ',{{prefix}}description)",
-                    'es_field' => 'computed',
+                    'table' => 'users',
+                    'es_name' => 'author2',
+                    'type' => 'one_to_one',
+                    'foreign_key' => ['local' => 'id', 'parent' => 'user_id'],
+                    'fields' => ['id', 'name'],
                 ],
-                'deleted_at',
+                [
+                    'table' => 'users',
+                    'es_name' => 'author3',
+                    'type' => 'one_to_one',
+                    'foreign_key' => ['local' => 'id', 'parent' => 'user_id'],
+                    'fields' => ['id', 'name'],
+                ],
+                [
+                    'table' => 'users',
+                    'es_name' => 'author4',
+                    'type' => 'one_to_one',
+                    'foreign_key' => ['local' => 'id', 'parent' => 'user_id'],
+                    'fields' => ['id', 'name'],
+                ],
+                [
+                    'table' => 'users',
+                    'es_name' => 'author4',
+                    'type' => 'one_to_one',
+                    'foreign_key' => ['local' => 'id', 'parent' => 'user_id'],
+                    'fields' => ['id', 'name'],
+                ],
             ],
         ],
         /**Relative to suggestions*/
