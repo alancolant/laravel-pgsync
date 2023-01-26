@@ -5,6 +5,7 @@ namespace Alancolant\LaravelPgsync\Subscribers;
 use Alancolant\LaravelPgsync\Types\DeleteEvent;
 use Alancolant\LaravelPgsync\Types\InsertEvent;
 use Alancolant\LaravelPgsync\Types\UpdateEvent;
+use Error;
 use Illuminate\Support\Facades\DB;
 use PDO;
 
@@ -17,7 +18,7 @@ class PostgresqlSubscriber extends AbstractSubscriber
         parent::__construct();
         $conn = DB::connection(config('pgsync.connection', config('database.default')));
         if ($conn->getDriverName() !== 'pgsql') {
-            throw new \Error("Driver {$conn->getDriverName()} not supported!");
+            throw new Error("Driver {$conn->getDriverName()} not supported!");
         }
         $this->pdo = $conn->getPdo();
     }
@@ -46,7 +47,7 @@ class PostgresqlSubscriber extends AbstractSubscriber
     }
 
     /**
-     * @throws \Error
+     * @throws Error
      */
     public function getNextEvent(): DeleteEvent|InsertEvent|UpdateEvent
     {
@@ -58,7 +59,7 @@ class PostgresqlSubscriber extends AbstractSubscriber
                     'insert' => new InsertEvent($payload['identity'], $payload['record']),
                     'update' => new UpdateEvent($payload['identity'], $payload['record'], $payload['old']),
                     'delete' => new DeleteEvent($payload['identity'], $payload['record']),
-                    default => throw new \Error("Unknown event action {$payload['action']}")
+                    default => throw new Error("Unknown event action {$payload['action']}")
                 };
             }
         }

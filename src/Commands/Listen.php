@@ -43,8 +43,12 @@ class Listen extends Command
 
         set_time_limit(0);
         $this->subscriber->startListening();
+        $i = 0;
         while ($this->running) {
-            $this->_broadcast($this->subscriber->getNextEvent());
+            $event = $this->subscriber->getNextEvent();
+            $i++;
+            echo "$i\n";
+            $this->_broadcast($event);
         }
         $this->subscriber->stopListening();
 

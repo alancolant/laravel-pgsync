@@ -22,15 +22,14 @@ class ElasticsearchPublisher extends AbstractPublisher
 
     public function handleDelete(DeleteEvent &$event): bool
     {
-        $params = ['body' => []];
+        $params = [];
 
-        foreach ($this->_getIndicesForTable($event->table) as $indiceName => $indice) {
-            $data = $this->_getRecordFieldsForIndex($event->record, $indice);
-            $params['body'][] = ['delete' => ['_index' => $indiceName, '_id' => $data['id']]];
+        foreach ($this->_getIndicesForTable($event->table) as $indice) {
+            $params[] = ['delete' => ['_index' => $indice['index'], '_id' => $event->record['id']]];
         }
 
-        if (! empty($params['body'])) {
-            $this->elasticClient->bulk($params);
+        if (! empty($params)) {
+            $this->_addBulk($params);
         }
 
         return true;
@@ -38,20 +37,20 @@ class ElasticsearchPublisher extends AbstractPublisher
 
     public function handleUpdate(UpdateEvent &$event): bool
     {
-        $params = ['body' => []];
+        $params = [];
 
-        foreach ($this->_getIndicesForTable($event->table) as $indiceName => $indice) {
+        foreach ($this->_getIndicesForTable($event->table) as $indice) {
             $oldData = $this->_getRecordFieldsForIndex($event->old, $indice);
             $newData = $this->_getRecordFieldsForIndex($event->record, $indice);
             $data = array_diff($newData, $oldData);
             if (empty($data)) {
                 continue;
             }
-            $params['body'][] = ['update' => ['_index' => $indiceName, '_id' => $event->record['id']]];
-            $params['body'][] = ['doc' => $newData];
+            $params[] = ['update' => ['_index' => $indice['index'], '_id' => $event->record['id']]];
+            $params[] = ['doc' => $newData];
         }
-        if (! empty($params['body'])) {
-            $this->elasticClient->bulk($params);
+        if (! empty($params)) {
+            $this->_addBulk($params);
         }
 
         return true;
@@ -59,18 +58,40 @@ class ElasticsearchPublisher extends AbstractPublisher
 
     public function handleInsert(InsertEvent &$event): bool
     {
-        $params = ['body' => []];
+        $params = [];
 
-        foreach ($this->_getIndicesForTable($event->table) as $indiceName => $indice) {
+        foreach ($this->_getIndicesForTable($event->table) as $indice) {
             $data = $this->_getRecordFieldsForIndex($event->record, $indice);
-            $params['body'][] = ['index' => ['_index' => $indiceName, '_id' => $data['id']]];
-            $params['body'][] = $data;
+            $params[] = ['index' => ['_index' => $indice['index'], '_id' => $data['id']]];
+            $params[] = $data;
         }
 
-        if (! empty($params['body'])) {
-            $this->elasticClient->bulk($params);
+        if (! empty($params)) {
+//            $this->elasticClient->bulk($params);
+            $this->_addBulk($params);
         }
 
         return true;
+    }
+
+    private array $bulkParams = ['body' => []];
+
+    private int $bulkBodyLength = 0;
+
+    private function _addBulk(array $body)
+    {
+        $this->bulkBodyLength++;
+        echo $this->bulkBodyLength."\n";
+        $this->bulkParams['body'] = array_merge($this->bulkParams['body'], $body);
+        if ($this->bulkBodyLength >= 1) {
+            $this->_sendBulk();
+        }
+    }
+
+    private function _sendBulk()
+    {
+        $this->elasticClient->bulk($this->bulkParams);
+        $this->bulkParams['body'] = [];
+        $this->bulkBodyLength = 0;
     }
 }

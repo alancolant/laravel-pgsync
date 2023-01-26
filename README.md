@@ -6,8 +6,11 @@
 -->
 ![GitHub Actions](https://github.com/alancolant/laravel-pgsync/actions/workflows/run-tests.yml/badge.svg)
 
-This is where your description should go. Try and limit it to a paragraph or two, and maybe throw in a mention of what
-PSRs you support to avoid any confusion with users and contributors.
+This package allows for real-time syncing of a PostgreSQL database with Elasticsearch using pg_notify mechanisms.
+
+It is designed to work seamlessly with Laravel, and can be easily integrated into any existing Laravel project.
+
+With this package, you can keep your Elasticsearch index in sync with your PostgreSQL database automatically and in real-time, without the need for manual imports or exports.
 
 ## Installation
 
@@ -19,9 +22,23 @@ composer require alancolant/laravel-pgsync
 
 ## Usage
 
-```php
-// Usage description here
+To start the sync process, simply run the following command:
+
+```bash
+php artisan pgsync:listen
 ```
+
+This will start listening for pg_notify events and updating Elasticsearch accordingly.
+
+## Configuration
+
+You can configure the package by publishing its configuration file and editing it:
+
+```bash
+php artisan vendor:publish --provider="Alancolant\LaravelPgsync\LaravelPgsyncServiceProvider"
+```
+
+This will create a `pgsync.php` file in your config directory. You can edit this file to configure the package according to your needs.
 
 ### Testing
 

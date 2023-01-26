@@ -37,7 +37,9 @@ return [
     /**
      * @TODO Doc
      * @TODO Relation (O2O,M2M)
-     * @TODO rename field with alias
+     *
+     * @DONE rename field with alias
+     *
      * @TODO Possibility to define elastic index settings
      * @TODO Possibility to define index name using doc field (ex: "users_[role]")
      *
@@ -48,20 +50,40 @@ return [
      * @suggestion Plugin system to use custom PHP methods to reformat document before indexing??
      */
     'indices' => [
-        'users' => [
+        [
             'table' => 'users',
-            'fields' => ['name'],
+            'index' => 'users',
+            'fields' => [
+                'name',
+            ],
         ],
-        'clients' => [
+        [
             'table' => 'users',
-            'fields' => ['email', 'password'],
+            'index' => 'clients',
+            'fields' => [
+                'email',
+                'password',
+            ],
         ],
-        'posts' => [
+        [
             'table' => 'posts',
-            'fields' => ['*'],
+            'index' => 'posts',
+            'fields' => [
+                'id',
+                [
+                    'db_field' => 'name',
+                    'es_field' => 'nom',
+                ],
+                'description',
+                [
+                    'db_query' => "CONCAT({{prefix}}id,' ',{{prefix}}description)",
+                    'es_field' => 'computed',
+                ],
+                'deleted_at',
+            ],
         ],
         /**Relative to suggestions*/
-        //        'posts_[user_ref]_[fullname]_[id]' => [
+        //        'posts_{{category}}' => [
         //            'input'     => 'postgresql2',
         //            'output'    => 'elasticsearch-eu-1',
         //            'table'     => 'posts',
@@ -70,7 +92,7 @@ return [
         //                'name',
         //                [
         //                    'db_field' => 'user_id',
-        //                    'alias'    => 'user_ref',
+        //                    'es_field'    => 'user_ref',
         //                ],
         //            ],
         //            'relations' => [
